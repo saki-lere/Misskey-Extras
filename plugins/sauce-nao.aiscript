@@ -1,3 +1,4 @@
+/// @ 0.12.4
 ### {
   name: "SauceNao Image Search"
   version: "0.5"
@@ -7,12 +8,12 @@
 }
 
 @sauceSearch(note) {
-  #files = note.files
-  #len = Arr:len(files)
+  let files = note.files
+  let len = files.len
 
-  ? (len > 0) {
-    #file = files[1]
-    Plugin:open_url(Arr:join(["https://saucenao.com/search.php?url=" Str:replace(Str:replace(file.url "/" "%2F") "#" "%23")]))    
+  if (len > 0) {
+    let file = files[0]
+    Plugin:open_url(["https://saucenao.com/search.php?url=" file.url.replace("/" "%2F").replace("#" "%23")].join())
   }
 
   note
