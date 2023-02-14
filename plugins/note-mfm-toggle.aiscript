@@ -1,3 +1,4 @@
+/// @ 0.12.4
 ### {
   name: "Note MFM Toggle"
   version: "1.1.0"
@@ -9,52 +10,52 @@
 
 :: Util {
   @pipe(els) {
-    #len = Arr:len(els)
+    let len = els.len
 
-    ? (len = 0) {
-      << _
+    if (len == 0) {
+      return null
     }
 
-    #result = els[1]
+    let result = els[0]
 
     @run(i) {
-      ? (i > len) {
-        << result
+      if (i >= len) {
+        return result
       }
 
-      #el = els[i]
-      result <- el(result)
+      let el = els[i]
+      result = el(result)
       
-      run((i + 1))
+      run(i + 1)
     }
 
-    run(2)
+    run(1)
   }
 
   @merge(obj1, obj2) {
-    #o = Obj:copy(obj1)
-    #kvs = Obj:kvs(obj2)
-    #len = Arr:len(kvs)
+    let o = Obj:copy(obj1)
+    let kvs = Obj:kvs(obj2)
+    let len = kvs.len
   
     @step(i) {
-      ? (i > len) {
-        << o
+      if (i >= len) {
+        return o
       }
 
-      #kv = kvs[i]
-      Obj:set(o, kv[1], kv[2])
+      let kv = kvs[i]
+      Obj:set(o, kv[0], kv[1])
 
-      step((i + 1))
+      step(i + 1)
     }
 
-    step(1)
+    step(0)
   }
 }
 
 :: Stream {
   @resultOk(read, stream) {
     {
-      ok: yes
+      ok: true
       read: read
       stream: stream
     }
@@ -62,7 +63,7 @@
 
   @resultFail() {
     {
-      ok: no
+      ok: false
     }
   }
 
@@ -74,19 +75,19 @@
   }
 
   @of(str) {
-    mk(str, 1)
+    mk(str, 0)
   }
 
   @read(stream, length) {
-    #remainingLength = ((Str:len(stream.str) - stream.pos) + 1)
+    let remainingLength = (stream.str.len - stream.pos)
 
-    ? (length > remainingLength) {
-      << resultFail()
+    if (length > remainingLength) {
+      return resultFail()
     }
 
-    #newPos = (stream.pos + length)
+    let newPos = (stream.pos + length)
 
-    resultOk(Str:slice(stream.str, stream.pos, newPos), mk(stream.str, newPos))
+    resultOk(stream.str.slice(stream.pos, newPos), mk(stream.str, newPos))
   }
 }
 
@@ -95,7 +96,7 @@
 
   @resultOk(stream, value) {
     {
-      ok: yes
+      ok: true
       stream: stream
       value: value
     }
@@ -103,7 +104,7 @@
 
   @resultFail(stream, error) {
     {
-      ok: no
+      ok: false
       stream: stream
       error: error
     }
@@ -125,10 +126,10 @@
 
   @anyToken(length) {
     mk(@(stream) {
-      #result = Stream:read(stream, length)
+      let result = Stream:read(stream, length)
 
-      ? result.ok {
-        << resultOk(result.stream, result.read)
+      if result.ok {
+        return resultOk(result.stream, result.read)
       }
 
       resultFail(stream, "End of input")
@@ -137,13 +138,13 @@
 
   @eof() {
     mk(@(stream) {
-      #result = Stream:read(stream, 1)
+      let result = Stream:read(stream, 1)
 
-      ? result.ok {
-        << resultFail(stream, "Expected end of input")
+      if result.ok {
+        return resultFail(stream, "Expected end of input")
       }
 
-      resultOk(stream, yes)
+      resultOk(stream, true)
     })
   }
 
@@ -152,11 +153,11 @@
   @then(cont) {
     @(parser) {
       mk(@(stream) {
-        #result = parser.parse(stream)
+        let result = parser.parse(stream)
 
-        ? result.ok {
-          #parserCont = cont(result.value)
-          << parserCont.parse(result.stream)
+        if result.ok {
+          let parserCont = cont(result.value)
+          return parserCont.parse(result.stream)
         }
     
         result
@@ -167,10 +168,10 @@
   @map(fn) {
     @(parser) {
       mk(@(stream) {
-        #result = parser.parse(stream)
+        let result = parser.parse(stream)
 
-        ? result.ok {
-          << resultOk(result.stream, fn(result.value))
+        if result.ok {
+          return resultOk(result.stream, fn(result.value))
         }
     
         result
@@ -183,14 +184,14 @@
   @satisfy(condition, description) {
     @(parser) {
       mk(@(stream) {
-        #result = parser.parse(stream)
+        let result = parser.parse(stream)
         
-        ? result.ok {
-          ? condition(result.value) {
-            << resultOk(result.stream, result.value)
+        if result.ok {
+          if condition(result.value) {
+            return resultOk(result.stream, result.value)
           }
           
-          << resultFail(stream, description)
+          return resultFail(stream, description)
         }
 
         result
@@ -199,40 +200,40 @@
   }
 
   @oneOf(parsers) {
-    #len = Arr:len(parsers)
+    let len = parsers.len
 
     mk(@(stream) {
-      #errors = []
+      let errors = []
 
       @run(i) {
-        ? (i > len) {
-          << resultFail(stream, Arr:join(["All parsers failed: " Arr:join(errors, "; ")]))
+        if (i >= len) {
+          return resultFail(stream, `All parsers failed: {errors.join("; ")}`)
         }
 
-        #parser = parsers[i]
-        #result = parser.parse(stream)
+        let parser = parsers[i]
+        let result = parser.parse(stream)
         
-        ? result.ok {
-          << result
+        if result.ok {
+          return result
         }
 
-        Arr:push(errors, Arr:join(["(" Core:to_str(i) ") " result.error]))
+        errors.push(`({i}){result.error}`)
         
         run((i + 1))
       }
 
-      run(1)
+      run(0)
     })
   }
 
   @many(parser) {
     @run(matches) {
       mk(@(stream) {
-        #result = parser.parse(stream)
+        let result = parser.parse(stream)
         
-        ? result.ok {
-          #step = run(Arr:concat(matches, [result.value]))
-          << step.parse(result.stream)
+        if result.ok {
+          let step = run(matches.concat([result.value]))
+          return step.parse(result.stream)
         }
 
         resultOk(result.stream, matches)
@@ -246,7 +247,7 @@
     Util:pipe([
       many(parser)
       satisfy(@(value) {
-        ? (Arr:len(value) = 0) { no } . { yes }
+        if (value.len == 0) { false } else { true }
       }, "Expected at least one match")
     ])
   }
@@ -255,28 +256,28 @@
 
   @token(str) {
     Util:pipe([
-      anyToken(Str:len(str))
+      anyToken(str.len)
       satisfy(@(value) {
-        ? (value = str) { yes } . { no }
-      }, Arr:join(["Expected '" str "'"]))
+        if (value == str) { true } else { false }
+      }, `Expected '{str}'`)
     ])
   }
 
   @takeWhile(condition) {
     mk(@(stream) {
-      #matches = []
+      let matches = []
 
       @run(s) {
-        #result = Stream:read(s, 1)
+        let result = Stream:read(s, 1)
 
-        ? result.ok {
-          ? condition(result.read) {
-            Arr:push(matches, result.read)
-            << run(result.stream)
+        if result.ok {
+          if condition(result.read) {
+            matches.push(result.read)
+            return run(result.stream)
           }
         }
 
-        resultOk(s, Arr:join(matches))
+        resultOk(s, matches.join())
       }
 
       run(stream)
@@ -287,7 +288,7 @@
     Util:pipe([
       takeWhile(condition)
       satisfy(@(value) {
-        ? (Str:len(value) = 0) { no } . { yes }
+        if (value.len == 0) { false } else { true }
       }, "Expected at least one match")
     ])
   }
@@ -310,7 +311,7 @@
         Util:pipe([
           store.parser
           Parser:then(@(value1) {
-            #parser = parserFn(value1)
+            let parser = parserFn(value1)
             Util:pipe([
               parser
               Parser:map(@(value2) {
@@ -329,7 +330,7 @@
         Util:pipe([
           store.parser
           Parser:then(@(value) {
-            #parser = parserFn(value)
+            let parser = parserFn(value)
             Util:pipe([
               parser
               Parser:map(@() { value })
@@ -342,11 +343,11 @@
 
   @store(key, parserFn) {
     merge(@(value1) {
-      #parser = parserFn(value1)
+      let parser = parserFn(value1)
       Util:pipe([
         parser
         Parser:map(@(value2) { 
-          #o = {}
+          let o = {}
           Obj:set(o, key, value2)
           o
         })
@@ -359,49 +360,49 @@
   }
 }
 
-#spaces = Parser:takeWhile(@(value) {
-  ? (value = " ") { yes } . { no }
+let spaces = Parser:takeWhile(@(value) {
+  if (value == " ") { true } else { false }
 })
 
-#mfmTagOpen = Parser:token("$[")
+let mfmTagOpen = Parser:token("$[")
 
-#mfmTagName = Parser:takeWhile1(@(value) {
-  ? (value = " ") { no } . { yes }
+let mfmTagName = Parser:takeWhile1(@(value) {
+  if (value == " ") { false } else { true }
 })
 
-#mfmTagClose = Parser:token("]")
+let mfmTagClose = Parser:token("]")
 
-#mfmTagText = Parser:takeWhile1(@(value) {
-  ? Str:incl("`$]", value) { no } . { yes }
+let mfmTagText = Parser:takeWhile1(@(value) {
+  if "`$]".incl(value) { false } else { true }
 })
 
-#codeToggle = Parser:token("`")
+let codeToggle = Parser:token("`")
 
-#codeBlockToggle = Parser:token("```")
+let codeBlockToggle = Parser:token("```")
 
-#codeText = Parser:takeWhile1(@(value) {
-  ? (value = "`") { no } . { yes }
+let codeText = Parser:takeWhile1(@(value) {
+  if (value == "`") { false } else { true }
 })
 
-#code = Util:pipe([
+let code = Util:pipe([
   ParserStore:create()
   ParserStore:skip(@() { codeToggle })
   ParserStore:store("content", @() { codeText })
   ParserStore:skip(@() { codeToggle })
   ParserStore:parser
-  Parser:map(@(store) { Arr:join(["`" store.content "`"]) })
+  Parser:map(@(store) { ["`" store.content "`"].join() })
 ])
 
-#codeBlock = Util:pipe([
+let codeBlock = Util:pipe([
   ParserStore:create()
   ParserStore:skip(@() { codeBlockToggle })
   ParserStore:store("content", @() { codeText })
   ParserStore:skip(@() { codeBlockToggle })
   ParserStore:parser
-  Parser:map(@(store) { Arr:join(["`" store.content "`"]) })
+  Parser:map(@(store) { ["`" store.content "`"].join() })
 ])
 
-#mfmTag = Util:pipe([
+let mfmTag = Util:pipe([
   ParserStore:create()
   ParserStore:skip(@() { mfmTagOpen })
   ParserStore:skip(@() { mfmTagName })
@@ -412,7 +413,7 @@
   Parser:map(@(store) { store.content })
 ])
 
-#mfmTagContent = Util:pipe([
+let mfmTagContent = Util:pipe([
   Parser:many(
     Parser:oneOf([
       mfmTagText
@@ -423,14 +424,14 @@
       Parser:token("$")
     ])
   )
-  Parser:map(@(parts) { Arr:join(parts) })
+  Parser:map(@(parts) { parts.join() })
 ])
 
-#noteText = Parser:takeWhile1(@(value) {
-  ? Str:incl("`$", value) { no } . { yes }
+let noteText = Parser:takeWhile1(@(value) {
+  if "`$".incl(value) { false } else { true }
 })
 
-#noteContent = Util:pipe([
+let noteContent = Util:pipe([
   Parser:many(
     Parser:oneOf([
       noteText
@@ -441,22 +442,22 @@
       Parser:token("$")
     ])
   )
-  Parser:map(@(parts) { Arr:join(parts) })
+  Parser:map(@(parts) { parts.join() })
 ])
 
 @strip(note) {
-  ? (note.renote = _) {
-    #result = noteContent.parse(Stream:of(note.text))
+  if (note.renote == null) {
+    let result = noteContent.parse(Stream:of(note.text))
 
-    ? result.ok {
-      note.text <- result.value
+    if result.ok {
+      note.text = result.value
     }
   }
-  . {
-    #result = noteContent.parse(Stream:of(note.renote.text))
+  else {
+    let result = noteContent.parse(Stream:of(note.renote.text))
 
-    ? result.ok {
-      note.renote.text <- result.value
+    if result.ok {
+      note.renote.text = result.value
     }
   }
   
@@ -464,16 +465,16 @@
 }
 
 @toggleMFM(note) {
-	$mutes <- Mk:load("mutes")
-	? (mutes = _) {
-		mutes <- [note.id]
+	var mutes = Mk:load("mutes")
+	if (mutes == null) {
+		mutes = [note.id]
 		Mk:dialog("MFM disabled for this note" "Reload or go to different page to take effect.")
-	} . {
-		? Arr:incl(mutes note.id) {
-			mutes <- Arr:filter(mutes @(x){(x != note.id)})
+	} else {
+		if mutes.incl(note.id) {
+			mutes = mutes.filter(@(x){(x != note.id)})
 			Mk:dialog("MFM reenabled for this note" "Reload or go to different page to take effect.")
-		} . {
-			Arr:push(mutes note.id)
+		} else {
+			mutes.push(note.id)
 			Mk:dialog("MFM disabled for this note" "Reload or go to different page to take effect.")
 		}
 	}
@@ -481,16 +482,16 @@
 }
 
 @checkMute(note) {
-	#mutes = Mk:load("mutes")
-	? (mutes != _) {
-		? Arr:incl(mutes note.id) {
-			note <- strip(note)
+	let mutes = Mk:load("mutes")
+	if (mutes != null) {
+		if mutes.incl(note.id) {
+			note = strip(note)
 		}
-		? Arr:incl(mutes note.renote.id) {
-			note.renote <- strip(note.renote)
+		if mutes.incl(note.renote.id) {
+			note.renote = strip(note.renote)
 		}
 	}
-	<<note
+	return note
 }
 
 
