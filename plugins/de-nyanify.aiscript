@@ -1,3 +1,4 @@
+/// @ 0.12.4
 ### {
   name: "Denyanify"
   version: "1.0.0"
@@ -7,11 +8,11 @@
 }
 
 @denyanifyText(note) {
-  ? ((note.text = _) | (note.text = "")) {
-    << note
+  if ((note.text == null) || (note.text == "")) {
+    return note
   }
 
-  note.text <- Str:replace(note.text, "na", "n​a")
+  note.text = note.text.replace("nya", "na")
   note
 }
 
