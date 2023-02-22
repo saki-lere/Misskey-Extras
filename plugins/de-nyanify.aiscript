@@ -1,8 +1,8 @@
 /// @ 0.12.4
 ### {
-  name: "Denyanify"
+  name: "Denyanify (AS0.12.4版)"
   version: "1.0.0"
-  author:  "volpeon"
+  author:  "@salano_ym (Original: volpeon)"
   description: "Keep your posts free of auto-inserted nyans"
   permission: []
 }
