@@ -1,8 +1,8 @@
 /// @ 0.12.4
 ### {
-  name: "Note MFM Toggle"
+  name: "Note MFM Toggle (AS0.12.4版)"
   version: "1.1.0"
-  author:  "volpeon, Johann150"
+  author:  "@salano_ym (Original: volpeon, Johann150)"
   description: "MFM can be toggled for specific notes from the three dot menu of the note."
   permission: []
   config: {}
