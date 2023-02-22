@@ -1,8 +1,8 @@
 /// @ 0.12.4
 ### {
-  name: "SauceNao Image Search"
+  name: "SauceNao Image Search (AS0.12.4版)"
   version: "0.5"
-  author:  "volpeon, puniko"
+  author:  "@salano_ym (Original: volpeon, puniko)"
   description: "performs a reverse image search using sauce nao"
   permission: []
 }
